@@ -1,13 +1,11 @@
 {
-  "name": "termux-web-app",
+  "name": "termux-web",
   "version": "1.0.0",
-  "description": "Termux interface for automation downloaders",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "ytdl-core": "^4.11.5"
+    "express": "^4.19.2"
   }
 }
