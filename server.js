@@ -70,11 +70,9 @@ app.get('/', (req, res) => {
 
             if (!url) return;
 
-            // Bloqueia interface durante execução
             btn.disabled = true;
             input.disabled = true;
 
-            // Atualiza tela simulando o comando entrando
             consoleBox.innerHTML += \`<p class="text-blue-400 mt-4 command-line">cd /sdcard/Download && yt-dlp -x --audio-format mp3 "\${url}"</p>\`;
             consoleBox.innerHTML += \`<p class="text-yellow-500">> [INFO] Iniciando requisição paralela no child_process...</p>\`;
             consoleBox.scrollTop = consoleBox.scrollHeight;
@@ -91,8 +89,6 @@ app.get('/', (req, res) => {
                 if (response.ok && data.fileUrl) {
                     consoleBox.innerHTML += \`<p class="text-green-500">> [SUCCESS] Extração de áudio concluída a 320kbps.</p>\`;
                     consoleBox.innerHTML += \`<p class="text-white">> Disparando download do arquivo gerado para o navegador...</p>\`;
-                    
-                    // Inicia download direto do arquivo gerado pelo servidor
                     window.location.href = data.fileUrl;
                 } else {
                     consoleBox.innerHTML += \`<p class="text-red-500">> [ERROR] Terminal retornou erro de execução: \${data.error}</p>\`;
@@ -112,7 +108,7 @@ app.get('/', (req, res) => {
     `);
 });
 
-// Endpoint da API: Executa o comando de terminal do Termux nos bastidores
+// Endpoint da API: Executa o comando de terminal
 app.post('/api/download', (req, res) => {
     const { url } = req.body;
 
@@ -121,25 +117,21 @@ app.post('/api/download', (req, res) => {
     }
 
     const idUnico = Date.now();
-    const nomeArquivo = `audio_\${idUnico}.mp3`;
+    const nomeArquivo = `audio_${idUnico}.mp3`;
     const caminhoCompleto = path.join(downloadsDir, nomeArquivo);
 
-    // O mesmo comando que você testou e funcionou no Termux original
-    const comandoBash = `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "\${caminhoCompleto}" "\${url}"`;
+    const comandoBash = `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "${caminhoCompleto}" "${url}"`;
 
     exec(comandoBash, (error, stdout, stderr) => {
         if (error) {
-            console.error(\`Erro no terminal: \${error}\`);
+            console.error("Erro no terminal:", error);
             return res.status(500).json({ error: 'Não foi possível extrair a mídia' });
         }
-
-        // Devolve o link do arquivo estático gerado para o front-end baixar
-        return res.json({ fileUrl: `/files/\${nomeArquivo}` });
+        return res.json({ fileUrl: `/files/${nomeArquivo}` });
     });
 });
 
-// Torna a pasta de downloads acessível para o navegador baixar o MP3
 app.use('/files', express.static(downloadsDir));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(\`Servidor ativo na porta \${PORT}\`));
+app.listen(PORT, () => console.log(`Servidor ativo na porta ${PORT}`));
