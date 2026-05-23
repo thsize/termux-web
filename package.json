@@ -4,10 +4,10 @@
   "description": "Termux interface for automation downloaders",
   "main": "server.js",
   "scripts": {
-    "build": "pip install yt-dlp || pip3 install yt-dlp",
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "yt-dlp-exec": "^1.0.2"
   }
 }
