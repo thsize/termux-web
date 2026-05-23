@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const ytDlp = require('yt-dlp-exec');
+const ytdl = require('ytdl-core');
 const app = express();
 
 app.use(express.json());
@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// O motor corrigido usando a biblioteca nativa
+// Processamento nativo em JavaScript Puro
 app.post('/api/download', async (req, res) => {
     const { url } = req.body;
 
@@ -24,25 +24,39 @@ app.post('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'URL ausente' });
     }
 
+    // Valida se o link realmente é do YouTube para não quebrar o script
+    if (!ytdl.validateURL(url)) {
+        return res.status(400).json({ error: 'Link do YouTube inválido' });
+    }
+
     const idUnico = Date.now();
-    const nomeArquivo = `audio_${idUnico}`;
-    const caminhoCompleto = path.join(downloadsDir, `${nomeArquivo}.mp3`);
+    const nomeArquivo = `audio_${idUnico}.mp3`;
+    const caminhoCompleto = path.join(downloadsDir, nomeArquivo);
 
     try {
-        // Executa o yt-dlp interno do projeto com os mesmos parâmetros de alta qualidade
-        await ytDlp(url, {
-            extractAudio: true,
-            audioFormat: 'mp3',
-            audioQuality: '0',
-            output: path.join(downloadsDir, `${nomeArquivo}.%(ext)s`)
+        // Cria o fluxo de download puxando apenas o áudio na maior qualidade disponível
+        const stream = ytdl(url, { 
+            quality: 'highestaudio',
+            filter: 'audioonly'
         });
 
-        // Retorna o link para o cliente baixar
-        return res.json({ fileUrl: `/files/${nomeArquivo}.mp3` });
+        // Grava o arquivo direto no disco do servidor do Render
+        const writeStream = fs.createWriteStream(caminhoCompleto);
+        stream.pipe(writeStream);
+
+        writeStream.on('finish', () => {
+            // Quando terminar de gravar, envia o link para o site baixar
+            return res.json({ fileUrl: `/files/${nomeArquivo}` });
+        });
+
+        writeStream.on('error', (err) => {
+            console.error("Erro na gravação do arquivo:", err);
+            return res.status(500).json({ error: 'Erro ao gravar o arquivo de áudio' });
+        });
 
     } catch (error) {
-        console.error("Erro no motor yt-dlp:", error);
-        return res.status(500).json({ error: 'O motor de download falhou ao processar o link' });
+        console.error("Erro no download nativo:", error);
+        return res.status(500).json({ error: 'Falha interna ao processar streaming da mídia' });
     }
 });
 
